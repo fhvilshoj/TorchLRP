@@ -39,7 +39,7 @@ explanation = x.grad
 _Note:_ Biases are currently ignored in the alphabeta-rule implementations.
 
 For a complete running example, which generates this plot: 
-![Example Explanation](examples/Example_explanations.png)
+<img src="examples/Example_explanations.pnt" style="max-width: 500px;"/>
 
 Please see [examples/explain_mnist.py](examples/explain_mnistpy).
 
