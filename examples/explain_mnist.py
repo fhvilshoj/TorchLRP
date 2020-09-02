@@ -21,6 +21,7 @@ def prepare_batch_for_plotting(a, nrow=4):
 
 def plot_attribution(a, ax_, preds, title):
     ax_.imshow(a)
+    ax_.axis('off')
     cols = (a.shape[1] - 2) // 30
     rows = (a.shape[0] - 2) // 30
     for i in range(rows):
@@ -68,6 +69,9 @@ run_and_plot_rule("gradient", ax[0, 1], title="input $\\times$ gradient", postpr
 run_and_plot_rule("epsilon", ax[1, 0])
 run_and_plot_rule("alpha1beta0", ax[2, 0])
 run_and_plot_rule("alpha2beta1", ax[2, 1])
+
+
+fig.tight_layout()
 
 fig.savefig("Example_explanations.png", dpi=280)
 plt.show()
