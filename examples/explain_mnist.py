@@ -41,7 +41,7 @@ with torch.no_grad():
     y_hat = model(x)
     pred = y_hat.max(1)[1]
 
-fig, ax = plt.subplots(3, 2)
+fig, ax = plt.subplots(3, 2, figsize=(8, 12))
 def run_and_plot_rule(rule, ax_, title=None, postprocess=None): 
     # Reset gradient
     x.grad = None
@@ -69,7 +69,7 @@ run_and_plot_rule("epsilon", ax[1, 0])
 run_and_plot_rule("alpha1beta0", ax[2, 0])
 run_and_plot_rule("alpha2beta1", ax[2, 1])
 
-fig.savefig("Example_explanations.png")
+fig.savefig("Example_explanations.png", dpi=280)
 plt.show()
 
 
