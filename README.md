@@ -32,9 +32,9 @@ explanation = x.grad
 **Implemented rules:**
 |Rule |Key | Note |
 |:----|:---|:-----|
-|$\epsilon$-rule| "epsilon" | Rule implemented, but $\epsilon$ fixed to $10^{-6}$ |
-|$\alpha=1\quad \beta=0$ | "alpha1beta0" | |
-|$\alpha=2\quad \beta=1$ | "alpha2beta1" | |
+|epsilon-rule| "epsilon" | Rule implemented, but epsilon fixed to `1e-6` |
+|alpha=1 beta=0 | "alpha1beta0" | |
+|alpha=2 beta=1 | "alpha2beta1" | |
 
 _Note:_ Biases are currently ignored in the $\alpha\beta$-rule implementation.
 
