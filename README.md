@@ -29,8 +29,17 @@ y_hat.backward()
 explanation = x.grad
 ```
 
+**Implemented rules:**
+|Rule |Key | Note |
+|:----|:---|:-----|
+|$\epsilon$-rule| "epsilon" | Rule implemented, but $\epsilon$ fixed to $10^{-6}$ |
+|$\alpha=1\quad \beta=0$ | "alpha1beta0" | |
+|$\alpha=2\quad \beta=1$ | "alpha2beta1" | |
+
+_Note:_ Biases are currently ignored in the $\alpha\beta$-rule implementation.
+
 For a complete running example, which generates this plot: 
-![Example Explanation](examples/Example_explanation.png)
+![Example Explanation](examples/Example_explanations.png)
 
 Please see [examples/explain_mnist.py](examples/explain_mnistpy).
 
