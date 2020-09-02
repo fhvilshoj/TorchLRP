@@ -25,6 +25,9 @@ def _forward_alpha_beta(ctx, input, weight, bias):
     return Z
 
 def _backward_alpha_beta(alpha, beta, ctx, relevance_output):
+    """
+        Inspired by https://github.com/albermax/innvestigate/blob/1ed38a377262236981090bb0989d2e1a6892a0b1/innvestigate/analyzer/relevance_based/relevance_rule.py#L270
+    """
     input, weights, Z, bias = ctx.saved_tensors
     sel = weights > 0
     zeros = torch.zeros_like(weights)
