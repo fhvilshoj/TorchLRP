@@ -63,14 +63,13 @@ def run_and_plot_rule(rule, ax_, title=None, postprocess=None):
     if title is None: title = rule
     plot_attribution(attr, ax_, pred, title)
 
-
 run_and_plot_rule("gradient", ax[0, 0])
 run_and_plot_rule("gradient", ax[0, 1], title="input $\\times$ gradient", postprocess = lambda attribution: attribution * x)
 run_and_plot_rule("epsilon", ax[1, 0])
 run_and_plot_rule("alpha1beta0", ax[2, 0])
 run_and_plot_rule("alpha2beta1", ax[2, 1])
 
-fig.savefig("model trained 1 epoch")
+fig.savefig("Example_explanations.png")
 plt.show()
 
 
