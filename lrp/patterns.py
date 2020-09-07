@@ -3,6 +3,13 @@ import torch.nn.functional as F
 
 from tqdm import tqdm
 
+"""
+    
+    This implementation is based on the implementation from
+    https://github.com/albermax/innvestigate/blob/master/innvestigate/analyzer/pattern_based.py
+
+"""
+
 def safe_divide(a, b):
     return a / (b + (b==0).float())
 
