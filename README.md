@@ -2,10 +2,25 @@
 A simple PyTorch implementation of the most basic Layer-Wise Relevance
 Propagation rules for linear layers and convolutional layers.
 
-The modules simply decorates `torch.nn.Sequential`, `torch.nn.Linear`, 
-and `torch.nn.Conv2d` to be able to use `autograd` backprop algorithm
-to compute explanations.
+The modules simply decorates `torch.nn.Sequential`, `torch.nn.Linear`, and
+`torch.nn.Conv2d` to be able to use `autograd` backprop algorithm to compute
+explanations.
 
+## Installation
+To install requirements, refer to the [`requirements.yml`](requirements.yml)
+file.
+
+If you use `conda`, then you can install an environment called `torchlrp` by
+executing the following command: 
+
+```bash
+> conda env create -f requirements.yml
+```
+
+To be able to import `lrp` as below, make sure that the `TorchLRP` directory is
+included in your path.
+
+## Usage 
 The code can be used as follows:
 
 ```python 

@@ -1,0 +1,11 @@
+name: torchlrp
+channels:
+    - pytorch
+    - defaults
+    - anaconda
+      # - conda-forge
+dependencies:
+    - python=3.8
+    - numpy=1.19
+    - pytorch=1.6
+    - torchvision
