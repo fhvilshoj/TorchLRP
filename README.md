@@ -50,14 +50,23 @@ explanation = x.grad
 |epsilon-rule| "epsilon" | Rule implemented, but epsilon fixed to `1e-6` |
 |alpha=1 beta=0 | "alpha1beta0" | |
 |alpha=2 beta=1 | "alpha2beta1" | |
+|PatternAttribution (all) | "patternattribution" | Use additional argument `pattern=pattern` |
+|PatternAttribution (positive) | "patternattribution" | Use additional argument `pattern=pattern` |
 
-_Note:_ Biases are currently ignored in the alphabeta-rule implementations.
+To compute patterns for the two `PatternAttribution` methods, import `lrp.patterns` and call
+```python 
+patterns_all = fit_patternnet(model, train_loader)
+patterns_pos = fit_patternnet_positive(model, train_loader)
+```
+
+_Note:_ Biases are currently ignored in the alphabeta-rule and PatternAttribution implementations.
 
 For a complete running example, which generates this plot: 
 <img src="examples/Example_explanations.png" style="max-width: 500px;"/>
 
 Please see [examples/explain_mnist.py](examples/explain_mnist.py).
 
-
+## Possible bugs
+Judging from the plot, something is probably wrong with the positive PatternAttribution, as is also produces negative attributions. I will be investigating this soon.
 
 
