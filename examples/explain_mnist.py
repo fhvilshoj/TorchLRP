@@ -11,7 +11,7 @@ import pathlib
 # no matter where it is run from
 base_path = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.insert(0, base_path.as_posix())
-from lrp.patterns import fit_patternnet # PatternNet patterns
+from lrp.patterns import fit_patternnet, fit_patternnet_positive # PatternNet patterns
 
 # End local imports
 
@@ -82,12 +82,14 @@ def run_and_plot_rule(rule, ax_, title=None, postprocess=None, pattern=None):
     if title is None: title = rule
     plot_attribution(attr, ax_, pred, title)
 
-run_and_plot_rule("gradient", ax[0, 0])
-run_and_plot_rule("gradient", ax[0, 1], title="input $\\times$ gradient", postprocess = lambda attribution: attribution * x)
-run_and_plot_rule("epsilon", ax[1, 0])
+# run_and_plot_rule("gradient", ax[0, 0])
+run_and_plot_rule("gradient", ax[0, 0], title="input $\\times$ gradient", postprocess = lambda attribution: attribution * x)
+run_and_plot_rule("epsilon", ax[0, 1])
 
-patterns = fit_patternnet(model, train_loader, max_iter=pattern_max_iter)
-run_and_plot_rule("patternattribution", ax[1, 1], pattern=patterns)
+patterns_all = fit_patternnet(model, train_loader, max_iter=pattern_max_iter)
+patterns_pos = fit_patternnet_positive(model, train_loader, max_iter=pattern_max_iter)
+run_and_plot_rule("patternattribution", ax[1, 0], pattern=patterns_all, title="PatternAttribution $S(x)$")
+run_and_plot_rule("patternattribution", ax[1, 1], pattern=patterns_pos, title="PatternAttribution $S(x)_{+-}$")
 
 run_and_plot_rule("alpha1beta0", ax[2, 0])
 run_and_plot_rule("alpha2beta1", ax[2, 1])
