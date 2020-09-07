@@ -18,7 +18,6 @@ class LinearEpsilon(Function):
         relevance_input  = relevance_input * input
         return relevance_input, None, None
 
-
 def _forward_alpha_beta(ctx, input, weight, bias):
     Z = F.linear(input, weight, bias)
     ctx.save_for_backward(input, weight, Z, bias)
@@ -77,9 +76,29 @@ class LinearAlpha2Beta1(Function):
     def backward(ctx, relevance_output):
         return _backward_alpha_beta(2., 1., ctx, relevance_output)
 
+
+class LinearPatternAttribution(Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias=None, pattern=None):
+        ctx.save_for_backward(input, weight, pattern)
+        return F.linear(input, weight, bias)
+
+    @staticmethod
+    def backward(ctx, relevance_output):
+        input, weight, P = ctx.saved_tensors
+        Z                = F.linear(input, P)
+        Z               += ((Z > 0).float()*2.-1) * 1e-6 # Safety tiny normalization to avoid dividing with zero
+        relevance_output = relevance_output / Z
+
+        relevance_input  = F.linear(relevance_output, P.t(), bias=None)
+        relevance_input  = relevance_input * input
+        return relevance_input, *[None] * 3
+
+
 linear = {
         "gradient":             F.linear,
         "epsilon":              LinearEpsilon.apply,
         "alpha1beta0":          LinearAlpha1Beta0.apply,
         "alpha2beta1":          LinearAlpha2Beta1.apply,
+        "patternattribution":   LinearPatternAttribution.apply,
 }

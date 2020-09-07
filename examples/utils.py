@@ -1,5 +1,9 @@
 import sys
-sys.path.append('..')
+import pathlib
+# Append parent directory of this file to sys.path, 
+# no matter where it is run from
+base_path = pathlib.Path(__file__).parent.parent.absolute()
+sys.path.insert(0, base_path.as_posix())
 
 import os
 import torch
@@ -27,14 +31,16 @@ def get_mnist_data(batch_size=16):
         torchvision.transforms.Normalize((0.1307,), (0.3081,))
     ])
 
-    train = torchvision.datasets.MNIST('../data', train=True, download=True, transform=transform)
+    train = torchvision.datasets.MNIST((base_path / 'data').as_posix(), train=True, download=True, transform=transform)
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size)
 
-    test = torchvision.datasets.MNIST('../data', train=False, download=True, transform=transform)
+    test = torchvision.datasets.MNIST((base_path / 'data').as_posix(), train=False, download=True, transform=transform)
     test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size)
     return train_loader, test_loader
 
-def prepare_mnist_model(model, model_path="model.pth", epochs=1, lr=1e-3):
+def prepare_mnist_model(model, model_path=(base_path/ 'examples' / 'model.pth').as_posix(), epochs=1, lr=1e-3):
+    train_loader, test_loader = get_mnist_data()
+
     if os.path.exists(model_path): 
         state_dict = torch.load(model_path)
         model.load_state_dict(state_dict)
@@ -43,7 +49,7 @@ def prepare_mnist_model(model, model_path="model.pth", epochs=1, lr=1e-3):
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
         model.train()
         for e in range(epochs):
-            for i, (x, y) in enumerate( train_loader):
+            for i, (x, y) in enumerate(train_loader):
                 y_hat = model(x)
                 loss  = loss_fn(y_hat, y)
                 loss.backward()

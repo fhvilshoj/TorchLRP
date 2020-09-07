@@ -4,7 +4,7 @@ from torch.autograd import Function
 
 class Conv2DEpsilon(Function):
     @staticmethod
-    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
+    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, **kwargs):
         Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
         ctx.save_for_backward(input, weight, Z)
         return Z
@@ -18,7 +18,7 @@ class Conv2DEpsilon(Function):
         relevance_input  = relevance_input * input
         return relevance_input, *[None]*6
 
-def _conv_alpha_beta_forward(ctx, input, weight, bias, stride, padding, dilation, groups): 
+def _conv_alpha_beta_forward(ctx, input, weight, bias, stride, padding, dilation, groups, **kwargs): 
     Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
     ctx.save_for_backward(input, weight, Z,  bias)
     return Z
@@ -54,28 +54,53 @@ def _conv_alpha_beta_backward(alpha, beta, ctx, relevance_output):
 
         return pos_rel * alpha - neg_rel * beta, *[None]*6        
 
+
 class Conv2DAlpha1Beta0(Function):
     @staticmethod
-    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
-        return _conv_alpha_beta_forward(ctx, input, weight, bias, stride, padding, dilation, groups)
+    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, **kwargs):
+        return _conv_alpha_beta_forward(ctx, input, weight, bias, stride, padding, dilation, groups, **kwargs)
     
     @staticmethod
     def backward(ctx, relevance_output):
         return _conv_alpha_beta_backward(1., 0., ctx, relevance_output)
 
+
 class Conv2DAlpha2Beta1(Function):
     @staticmethod
-    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1):
-        return _conv_alpha_beta_forward(ctx, input, weight, bias, stride, padding, dilation, groups)
+    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, **kwargs):
+        return _conv_alpha_beta_forward(ctx, input, weight, bias, stride, padding, dilation, groups, **kwargs)
     
     @staticmethod
     def backward(ctx, relevance_output):
         return _conv_alpha_beta_backward(2., 1., ctx, relevance_output)
+
+
+class Conv2DPatternAttribution(Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, pattern=None):
+        Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
+        ctx.save_for_backward(input, pattern)
+
+        # TODO: Currently I don't handle dilation and groups
+        ctx.stride = stride
+        ctx.padding = padding
+        return Z
+    
+    @staticmethod
+    def backward(ctx, relevance_output):
+        input, P = ctx.saved_tensors
+        Z                = F.conv2d(input, P, bias=None, stride=ctx.stride, padding=ctx.padding)
+        Z               += ((Z > 0).float()*2-1) * 1e-6
+        relevance_output = relevance_output / Z
+        relevance_input  = F.conv_transpose2d(relevance_output, P, None, padding=ctx.padding)
+        relevance_input  = relevance_input * input
+        return relevance_input, *[None]*7
 
 conv2d = {
         "gradient":             F.conv2d,
         "epsilon":              Conv2DEpsilon.apply,
         "alpha1beta0":          Conv2DAlpha1Beta0.apply,
         "alpha2beta1":          Conv2DAlpha2Beta1.apply,
+        "patternattribution":   Conv2DPatternAttribution.apply,
 }
 
