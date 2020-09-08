@@ -58,6 +58,7 @@ explanation = x.grad
 To compute patterns for the two `PatternAttribution` methods, import
 `lrp.patterns` and call
 ```python 
+import lrp.patterns.*
 patterns_all = fit_patternnet(model, train_loader)
 patterns_pos = fit_patternnet_positive(model, train_loader)
 ```

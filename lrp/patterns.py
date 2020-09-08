@@ -3,6 +3,11 @@ import torch.nn.functional as F
 
 from tqdm import tqdm
 
+__all__  = [
+    'fit_patternnet',
+    'fit_patternnet_positive',
+]
+
 """
     
     This implementation is based on the implementation from
@@ -10,10 +15,10 @@ from tqdm import tqdm
 
 """
 
-def safe_divide(a, b):
+def _safe_divide(a, b):
     return a / (b + (b==0).float())
 
-def prod(module, input, output, mask_fn):
+def _prod(module, input, output, mask_fn):
     mask = mask_fn(output).float()
     output_ = output * mask
 
@@ -66,7 +71,7 @@ def _fit_pattern(model, train_loader, max_iter, mask_fn = lambda y: torch.ones_l
                 x = y.clone()
                 continue
             
-            x_, y_, xy_prod, w, w_fn = prod(m, x, y, mask_fn)
+            x_, y_, xy_prod, w, w_fn = _prod(m, x, y, mask_fn)
 
             if first:
                 stats_in.append(x_)
@@ -98,7 +103,7 @@ def _fit_pattern(model, train_loader, max_iter, mask_fn = lambda y: torch.ones_l
         
         cov_xy = xy_ - ExEy # [in, out]
         w_cov_xy = torch.diag(W @ cov_xy) # [out,]
-        A = safe_divide(cov_xy, w_cov_xy[None, :])
+        A = _safe_divide(cov_xy, w_cov_xy[None, :])
         A = w_fn(A) # Reshape to original kernel size
 
         return A
