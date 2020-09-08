@@ -1,6 +1,6 @@
 # Implementation of LRP for pytorch
 A simple PyTorch implementation of the most basic Layer-Wise Relevance
-Propagation rules for linear layers and convolutional layers.
+Propagation rules [1, 2] for linear layers and convolutional layers.
 
 The modules simply decorates `torch.nn.Sequential`, `torch.nn.Linear`, and
 `torch.nn.Conv2d` to be able to use `autograd` backprop algorithm to compute
@@ -76,3 +76,6 @@ PatternAttribution and PatternNet, as it doesn't compare visually to, e.g.,
 [this implementation](https://github.com/albermax/innvestigate/blob/master/examples/notebooks/mnist_compare_methods.ipynb).
 
 
+## References
+[1] Bach, S., Binder, A., Montavon, G., Klauschen, F., Müller, K.R. and Samek, W., 2015. On pixel-wise explanations for non-linear classifier decisions by layer-wise relevance propagation. PloS one, 10(7), p.e0130140.
+[2] Kindermans, P.J., Schütt, K.T., Alber, M., Müller, K.R., Erhan, D., Kim, B. and Dähne, S., 2017. Learning how to explain neural networks: Patternnet and patternattribution. arXiv preprint arXiv:1705.05598.
