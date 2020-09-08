@@ -26,7 +26,7 @@ def load_patterns(file_name):
     with open(file_name, 'rb') as f: p = pickle.load(f)
     return p
 
-def prepare_batch_for_plotting(a, nrow=4):
+def prepare_batch_for_plotting(a, nrow=4, cmap='seismic'):
     # Normalize
     a /= torch.abs(a).view(a.size(0), -1).max(1)[0].view(-1, 1, 1, 1) + 1e-6
     a = (a+1) / 2
@@ -37,7 +37,7 @@ def prepare_batch_for_plotting(a, nrow=4):
     grid = grid.mean(-1)
 
     # Make heatmap
-    cmap = plt.get_cmap('seismic')
+    cmap = plt.get_cmap(cmap)
     colors = cmap(grid.reshape(-1))
     colors = colors.reshape(grid.size(0), grid.size(1), 4)
     return colors
@@ -69,7 +69,7 @@ def main(args):
         y_hat = model(x)
         pred = y_hat.max(1)[1]
 
-    def run_and_plot_rule(rule, ax_, title=None, postprocess=None, pattern=None): 
+    def run_and_plot_rule(rule, ax_, title=None, postprocess=None, pattern=None, cmap='seismic'): 
         # Reset gradient
         x.grad = None
 
@@ -86,8 +86,7 @@ def main(args):
             with torch.no_grad(): 
                 attr = postprocess(attr)
 
-        print(rule, attr.min(), attr.max(), attr.mean(), torch.median(attr))
-        attr = prepare_batch_for_plotting(attr)
+        attr = prepare_batch_for_plotting(attr, cmap=cmap)
         if title is None: title = rule
         plot_attribution(attr, ax_, pred, title)
 
@@ -107,17 +106,24 @@ def main(args):
         patterns_pos = load_patterns(pos_patterns_path)
 
     # Plotting
-    fig, ax = plt.subplots(3, 2, figsize=(8, 12))
+    fig, ax = plt.subplots(3, 3, figsize=(8, 8))
+
+    with torch.no_grad(): 
+        x_plot = prepare_batch_for_plotting(x*2.-1, cmap='gray')
+        plot_attribution(x_plot, ax[0, 0], pred, "Input")
+
     # run_and_plot_rule("gradient", ax[0, 0])
-    run_and_plot_rule("gradient", ax[0, 0], title="input $\\times$ gradient", postprocess = lambda attribution: attribution * x)
-    run_and_plot_rule("epsilon", ax[0, 1])
+    run_and_plot_rule("gradient", ax[1, 0], title="input $\\times$ gradient", postprocess = lambda attribution: attribution * x)
+    run_and_plot_rule("epsilon", ax[2, 0])
 
-    run_and_plot_rule("patternattribution", ax[1, 0], pattern=patterns_all, title="PatternAttribution $S(x)$")
-    run_and_plot_rule("patternattribution", ax[1, 1], pattern=patterns_pos, title="PatternAttribution $S(x)_{+-}$")
+    run_and_plot_rule("alpha1beta0", ax[0, 1])
+    run_and_plot_rule("alpha2beta1", ax[0, 2])
 
-    run_and_plot_rule("alpha1beta0", ax[2, 0])
-    run_and_plot_rule("alpha2beta1", ax[2, 1])
+    run_and_plot_rule("patternattribution", ax[1, 1], pattern=list(patterns_all), title="PatternAttribution $S(x)$")
+    run_and_plot_rule("patternattribution", ax[1, 2], pattern=list(patterns_pos), title="PatternAttribution $S(x)_{+-}$")
 
+    run_and_plot_rule("patternnet", ax[2, 1], pattern=patterns_all, title="PatternNet $S(x)$", cmap='gray')
+    run_and_plot_rule("patternnet", ax[2, 2], pattern=patterns_pos, title="PatternNet $S(x)_{+-}$", cmap='gray')
 
     fig.tight_layout()
 

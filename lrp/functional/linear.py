@@ -77,24 +77,40 @@ class LinearAlpha2Beta1(Function):
         return _backward_alpha_beta(2., 1., ctx, relevance_output)
 
 
+def _forward_pattern(attribution, ctx, input, weight, bias, pattern):
+    ctx.save_for_backward(input, weight, pattern, bias)
+    ctx.attribution = attribution
+    return F.linear(input, weight, bias)
+
+def _backward_pattern(ctx, relevance_output):
+    input, weight, P, bias = ctx.saved_tensors
+    if  ctx.attribution: P = weight * P                 # PatternAttribution
+    Z                = F.linear(input, P, bias)
+    Z               += ((Z > 0).float()*2.-1) * 1e-6    # Safety tiny normalization to avoid dividing with zero
+    relevance_output = relevance_output / Z
+
+    relevance_input  = F.linear(relevance_output, P.t(), bias=None)
+    relevance_input  = relevance_input * input
+    return relevance_input, *[None] * 3
+
+
 class LinearPatternAttribution(Function):
     @staticmethod
     def forward(ctx, input, weight, bias=None, pattern=None):
-        ctx.save_for_backward(input, weight, pattern, bias)
-        return F.linear(input, weight, bias)
+        return _forward_pattern(True, ctx, input, weight, bias, pattern) 
 
     @staticmethod
     def backward(ctx, relevance_output):
-        input, weight, P, bias = ctx.saved_tensors
-        P = weight * P
-        Z                = F.linear(input, P, bias)
-        Z               += ((Z > 0).float()*2.-1) * 1e-6 # Safety tiny normalization to avoid dividing with zero
-        relevance_output = relevance_output / Z
+        return _backward_pattern(ctx, relevance_output)
 
-        relevance_input  = F.linear(relevance_output, P.t(), bias=None)
-        relevance_input  = relevance_input * input
-        return relevance_input, *[None] * 3
+class LinearPatternNet(Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias=None, pattern=None):
+        return _forward_pattern(False, ctx, input, weight, bias, pattern) 
 
+    @staticmethod
+    def backward(ctx, relevance_output):
+        return _backward_pattern(ctx, relevance_output)
 
 linear = {
         "gradient":             F.linear,
@@ -102,4 +118,5 @@ linear = {
         "alpha1beta0":          LinearAlpha1Beta0.apply,
         "alpha2beta1":          LinearAlpha2Beta1.apply,
         "patternattribution":   LinearPatternAttribution.apply,
+        "patternnet":           LinearPatternNet.apply,
 }

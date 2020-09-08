@@ -107,7 +107,6 @@ def _fit_pattern(model, train_loader, max_iter, mask_fn = lambda y: torch.ones_l
     return patterns
 
 
-
 @torch.no_grad()
 def fit_patternnet(model, train_loader, max_iter=None):
     return _fit_pattern(model, train_loader, max_iter)

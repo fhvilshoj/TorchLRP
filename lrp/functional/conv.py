@@ -75,27 +75,44 @@ class Conv2DAlpha2Beta1(Function):
         return _conv_alpha_beta_backward(2., 1., ctx, relevance_output)
 
 
+def _pattern_forward(attribution, ctx, input, weight, bias, stride, padding, dilation, groups, pattern):
+    Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
+    ctx.save_for_backward(input, weight, pattern, bias)
+
+    # TODO: Currently I don't handle dilation and groups
+    ctx.stride = stride
+    ctx.padding = padding
+    ctx.attribution = attribution
+    return Z
+
+def _pattern_backward(ctx, relevance_output):
+    input, weight, P, bias = ctx.saved_tensors
+    if ctx.attribution: P = weight * P            # PatternAttribution
+
+    Z                = F.conv2d(input, P, bias=bias, stride=ctx.stride, padding=ctx.padding)
+    Z               += ((Z > 0).float()*2-1) * 1e-6
+    relevance_output = relevance_output / Z
+    relevance_input  = F.conv_transpose2d(relevance_output, P, padding=ctx.padding)
+    relevance_input  = relevance_input * input
+    return relevance_input, *[None]*7
+
 class Conv2DPatternAttribution(Function):
     @staticmethod
     def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, pattern=None):
-        Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
-        ctx.save_for_backward(input, weight, pattern, bias)
+        return _pattern_forward(True, ctx, input, weight, bias, stride, padding, dilation, groups, pattern)
 
-        # TODO: Currently I don't handle dilation and groups
-        ctx.stride = stride
-        ctx.padding = padding
-        return Z
-    
     @staticmethod
     def backward(ctx, relevance_output):
-        input, weight, P, bias = ctx.saved_tensors
-        P                = weight * P           #  For PatternNet, this should be removed
-        Z                = F.conv2d(input, P, bias=bias, stride=ctx.stride, padding=ctx.padding)
-        Z               += ((Z > 0).float()*2-1) * 1e-6
-        relevance_output = relevance_output / Z
-        relevance_input  = F.conv_transpose2d(relevance_output, P, padding=ctx.padding)
-        relevance_input  = relevance_input * input
-        return relevance_input, *[None]*7
+        return _pattern_backward(ctx, relevance_output)
+
+class Conv2DPatternNet(Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, pattern=None):
+        return _pattern_forward(False, ctx, input, weight, bias, stride, padding, dilation, groups, pattern)
+
+    @staticmethod
+    def backward(ctx, relevance_output):
+        return _pattern_backward(ctx, relevance_output)
 
 conv2d = {
         "gradient":             F.conv2d,
@@ -103,5 +120,6 @@ conv2d = {
         "alpha1beta0":          Conv2DAlpha1Beta0.apply,
         "alpha2beta1":          Conv2DAlpha2Beta1.apply,
         "patternattribution":   Conv2DPatternAttribution.apply,
+        "patternnet":           Conv2DPatternNet.apply,
 }
 
