@@ -26,34 +26,46 @@ def load_patterns(file_name):
     with open(file_name, 'rb') as f: p = pickle.load(f)
     return p
 
-def prepare_batch_for_plotting(a, nrow=4, cmap='seismic'):
+def heatmap(R,sx,sy, ax):
+    R = R.reshape(4, 4, 28, 28)
+    R = np.transpose(R, (0, 2, 1, 3))
+    R = R.reshape(4*28, 4*28)
+
+    b = 10*((np.abs(R)**3.0).mean()**(1.0/3))
+
+    from matplotlib.colors import ListedColormap
+    my_cmap = plt.cm.seismic(np.arange(plt.cm.seismic.N))
+    my_cmap[:,0:3] *= 0.85
+    my_cmap = ListedColormap(my_cmap)
+
+    ax.axis('off')
+    ax.imshow(R,cmap=my_cmap,vmin=-b,vmax=b,interpolation='nearest')
+
+def prepare_batch_for_plotting(a, nrow=3, cmap='seismic'):
     # Normalize
     a /= torch.abs(a).view(a.size(0), -1).max(1)[0].view(-1, 1, 1, 1) + 1e-6
-    a = (a+1) / 2
 
     # Make image grid
     grid = torchvision.utils.make_grid(a, nrow=nrow)
     grid = grid.permute(1, 2, 0)
     grid = grid.mean(-1)
 
-    # Make heatmap
-    cmap = plt.get_cmap(cmap)
-    colors = cmap(grid.reshape(-1))
-    colors = colors.reshape(grid.size(0), grid.size(1), 4)
-    return colors
+    return grid
 
-def plot_attribution(a, ax_, preds, title):
-    ax_.imshow(a)
+def plot_attribution(a, ax_, preds, title, cmap='seismic'):
+    b = 1.
+    # b = 10*((np.abs(a)**3.0).mean()**(1.0/3)) # L_3 norm? 
+    ax_.imshow(a, cmap=cmap, vmin=-b, vmax=b)
     ax_.axis('off')
     cols = (a.shape[1] - 2) // 30
     rows = (a.shape[0] - 2) // 30
     for i in range(rows):
         for j in range(cols):
-            ax_.text(28+j*30, 30+i*30, preds[i*4+j].item(), horizontalalignment="right", verticalalignment="bottom", color="lime")
+            ax_.text(28+j*30, 30+i*30, preds[i*cols+j].item(), horizontalalignment="right", verticalalignment="bottom", color="lime")
     ax_.set_title(title)
 
 def main(args): 
-    num_samples_plot = min(args.batch_size, 16)
+    num_samples_plot = min(args.batch_size, 9)
 
     model = get_mnist_model()
     prepare_mnist_model(model, epochs=args.epochs, train_new=args.train_new)
@@ -86,9 +98,10 @@ def main(args):
             with torch.no_grad(): 
                 attr = postprocess(attr)
 
-        attr = prepare_batch_for_plotting(attr, cmap=cmap)
+        attr = prepare_batch_for_plotting(attr)
+
         if title is None: title = rule
-        plot_attribution(attr, ax_, pred, title)
+        plot_attribution(attr, ax_, pred, title, cmap=cmap)
 
     # Patterns
     all_patterns_path = (base_path / 'examples' / 'pattern_all.pkl').as_posix()
@@ -106,24 +119,26 @@ def main(args):
         patterns_pos = load_patterns(pos_patterns_path)
 
     # Plotting
-    fig, ax = plt.subplots(3, 3, figsize=(8, 8))
+    fig, ax = plt.subplots(2, 5, figsize=(10, 5))
 
     with torch.no_grad(): 
-        x_plot = prepare_batch_for_plotting(x*2.-1, cmap='gray')
-        plot_attribution(x_plot, ax[0, 0], pred, "Input")
+        x_plot = prepare_batch_for_plotting(x*2.-1)
+        plot_attribution(x_plot, ax[0, 0], pred, "Input", cmap='gray')
 
     # run_and_plot_rule("gradient", ax[0, 0])
     run_and_plot_rule("gradient", ax[1, 0], title="input $\\times$ gradient", postprocess = lambda attribution: attribution * x)
-    run_and_plot_rule("epsilon", ax[2, 0])
 
-    run_and_plot_rule("alpha1beta0", ax[0, 1])
-    run_and_plot_rule("alpha2beta1", ax[0, 2])
+    run_and_plot_rule("epsilon", ax[0, 1])
+    run_and_plot_rule("gamma+epsilon", ax[1, 1])
 
-    run_and_plot_rule("patternattribution", ax[1, 1], pattern=list(patterns_all), title="PatternAttribution $S(x)$")
-    run_and_plot_rule("patternattribution", ax[1, 2], pattern=list(patterns_pos), title="PatternAttribution $S(x)_{+-}$")
+    run_and_plot_rule("alpha1beta0", ax[0, 2])
+    run_and_plot_rule("alpha2beta1", ax[1, 2])
 
-    run_and_plot_rule("patternnet", ax[2, 1], pattern=patterns_all, title="PatternNet $S(x)$", cmap='gray')
-    run_and_plot_rule("patternnet", ax[2, 2], pattern=patterns_pos, title="PatternNet $S(x)_{+-}$", cmap='gray')
+    run_and_plot_rule("patternattribution", ax[0, 3], pattern=list(patterns_all), title="PatternAttribution $S(x)$")
+    run_and_plot_rule("patternattribution", ax[1, 3], pattern=list(patterns_pos), title="PatternAttribution $S(x)_{+-}$")
+
+    run_and_plot_rule("patternnet", ax[0, 4], pattern=patterns_all, title="PatternNet $S(x)$", cmap='gray')
+    run_and_plot_rule("patternnet", ax[1, 4], pattern=patterns_pos, title="PatternNet $S(x)_{+-}$", cmap='gray')
 
     fig.tight_layout()
 

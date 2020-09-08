@@ -47,7 +47,9 @@ explanation = x.grad
 **Implemented rules:**
 |Rule 							|Key 					| Note 												|
 |:------------------------------|:----------------------|:--------------------------------------------------|
-|epsilon-rule					| "epsilon" 			| Rule implemented, but epsilon fixed to `1e-6` 	|
+|epsilon-rule					| "epsilon" 			| Implemented but epsilon fixed to `1e-1` 			|
+|gamma-rule						| "gamma" 				| Implemented but gamma fixed to `1e-1`				|
+|epsilon-rule					| "epsilon" 			| gamma and epsilon fixed to `1e-1`					|
 |alpha=1 beta=0 				| "alpha1beta0" 		| 													|
 |alpha=2 beta=1 				| "alpha2beta1" 		| 													|
 |PatternAttribution (all) 		| "patternattribution" 	| Use additional argument `pattern=patterns_all` 	|

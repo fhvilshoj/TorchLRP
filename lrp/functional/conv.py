@@ -2,21 +2,60 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Function
 
+from .utils import identity_fn, gamma_fn, add_epsilon_fn
+
+def _forward_rho(rho, incr, ctx, input, weight, bias, stride, padding, dilation, groups):
+        ctx.save_for_backward(input, weight, bias)
+        ctx.rho = rho
+        ctx.incr = incr
+        ctx.stride = stride
+        ctx.padding = padding
+        ctx.dilation = dilation
+        ctx.groups = groups
+
+        Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
+        return Z
+
+def _backward_rho(ctx, relevance_output):
+    input, weight, bias    = ctx.saved_tensors
+
+    weight, bias     = ctx.rho(weight, bias)
+    Z                = ctx.incr(F.conv2d(input, weight, bias, ctx.stride, ctx.padding, ctx.dilation, ctx.groups))
+
+    relevance_output = relevance_output / Z
+    relevance_input  = F.conv_transpose2d(relevance_output, weight, None, padding=1)
+    relevance_input  = relevance_input * input
+
+    return relevance_input, *[None]*6
+
+
+
 class Conv2DEpsilon(Function):
     @staticmethod
     def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, **kwargs):
-        Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
-        ctx.save_for_backward(input, weight, Z)
-        return Z
+        return _forward_rho(identity_fn, add_epsilon_fn(1e-1), ctx, input, weight, bias, stride, padding, dilation, groups)
     
     @staticmethod
     def backward(ctx, relevance_output):
-        input, weight, Z = ctx.saved_tensors
-        Z               += ((Z > 0).float()*2-1) * 1e-6
-        relevance_output = relevance_output / Z
-        relevance_input  = F.conv_transpose2d(relevance_output, weight, None, padding=1)
-        relevance_input  = relevance_input * input
-        return relevance_input, *[None]*6
+        return _backward_rho(ctx, relevance_output)
+
+class Conv2DGamma(Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, **kwargs):
+        return _forward_rho(gamma_fn(0.1), add_epsilon_fn(1e-10), ctx, input, weight, bias, stride, padding, dilation, groups)
+    
+    @staticmethod
+    def backward(ctx, relevance_output):
+        return _backward_rho(ctx, relevance_output)
+
+class Conv2DGammaEpsilon(Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias=None, stride=1, padding=0, dilation=1, groups=1, **kwargs):
+        return _forward_rho(gamma_fn(0.1), add_epsilon_fn(1e-1), ctx, input, weight, bias, stride, padding, dilation, groups)
+    
+    @staticmethod
+    def backward(ctx, relevance_output):
+        return _backward_rho(ctx, relevance_output)
 
 def _conv_alpha_beta_forward(ctx, input, weight, bias, stride, padding, dilation, groups, **kwargs): 
     Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
@@ -117,6 +156,8 @@ class Conv2DPatternNet(Function):
 conv2d = {
         "gradient":             F.conv2d,
         "epsilon":              Conv2DEpsilon.apply,
+        "gamma":                Conv2DGamma.apply,
+        "gamma+epsilon":        Conv2DGammaEpsilon.apply,
         "alpha1beta0":          Conv2DAlpha1Beta0.apply,
         "alpha2beta1":          Conv2DAlpha2Beta1.apply,
         "patternattribution":   Conv2DPatternAttribution.apply,
