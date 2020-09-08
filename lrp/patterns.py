@@ -21,7 +21,6 @@ def prod(module, input, output, mask_fn):
         return input.t() @ mask, output, input.t() @ output_, module.weight, lambda w: w.t()
 
     elif isinstance(module, torch.nn.Conv2d): 
-
         p1, p2 = module.padding
         s1, s2 = module.stride
         k1, k2 = module.kernel_size

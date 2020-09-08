@@ -13,35 +13,40 @@ import torchvision
 
 from lrp import Sequential, Linear, Conv2d
 
+_standard_transform = torchvision.transforms.Compose([
+    torchvision.transforms.ToTensor(),
+    # torchvision.transforms.Normalize((0.1307,), (0.3081,))
+])
+
 def get_mnist_model():
     model = Sequential(
         Conv2d(1, 32, 3, 1, 1),
         nn.ReLU(),
         Conv2d(32, 32, 3, 1, 1),
         nn.ReLU(),
+        nn.MaxPool2d(2,2),
+        Conv2d(32, 32, 3, 1, 1),
+        nn.ReLU(),
+        Conv2d(32, 32, 3, 1, 1),
+        nn.ReLU(),
         nn.MaxPool2d(2, 2),
         nn.Flatten(),
-        Linear(14*14*32, 10)
+        Linear(7*7*32, 10)
     )
     return model
 
-def get_mnist_data(batch_size=16):
-    transform=torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor(),
-        torchvision.transforms.Normalize((0.1307,), (0.3081,))
-    ])
-
+def get_mnist_data(transform, batch_size=16):
     train = torchvision.datasets.MNIST((base_path / 'data').as_posix(), train=True, download=True, transform=transform)
-    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size)
+    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
 
     test = torchvision.datasets.MNIST((base_path / 'data').as_posix(), train=False, download=True, transform=transform)
-    test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size)
+    test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=True)
     return train_loader, test_loader
 
-def prepare_mnist_model(model, model_path=(base_path/ 'examples' / 'model.pth').as_posix(), epochs=1, lr=1e-3):
-    train_loader, test_loader = get_mnist_data()
+def prepare_mnist_model(model, model_path=(base_path / 'examples' / 'model.pth').as_posix(), epochs=1, lr=1e-3, train_new=False, transform=_standard_transform):
+    train_loader, test_loader = get_mnist_data(transform)
 
-    if os.path.exists(model_path): 
+    if os.path.exists(model_path) and not train_new: 
         state_dict = torch.load(model_path)
         model.load_state_dict(state_dict)
     else: 

@@ -80,13 +80,14 @@ class LinearAlpha2Beta1(Function):
 class LinearPatternAttribution(Function):
     @staticmethod
     def forward(ctx, input, weight, bias=None, pattern=None):
-        ctx.save_for_backward(input, weight, pattern)
+        ctx.save_for_backward(input, weight, pattern, bias)
         return F.linear(input, weight, bias)
 
     @staticmethod
     def backward(ctx, relevance_output):
-        input, weight, P = ctx.saved_tensors
-        Z                = F.linear(input, P)
+        input, weight, P, bias = ctx.saved_tensors
+        P = weight * P
+        Z                = F.linear(input, P, bias)
         Z               += ((Z > 0).float()*2.-1) * 1e-6 # Safety tiny normalization to avoid dividing with zero
         relevance_output = relevance_output / Z
 
