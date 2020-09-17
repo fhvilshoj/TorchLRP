@@ -5,7 +5,10 @@ channels:
     - anaconda
       # - conda-forge
 dependencies:
-    - python=3.8
+    - python=3.7
     - numpy=1.19
+    - cudatoolkit=10.1
     - pytorch=1.6
     - torchvision
+    - matplotlib=3.3.1
+    - tqdm=4.48
