@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torchvision
 
-from lrp import Sequential, Linear, Conv2d
+from lrp import Sequential, Linear, Conv2d, MaxPool2d
 
 _standard_transform = torchvision.transforms.Compose([
     torchvision.transforms.ToTensor(),
@@ -22,22 +22,19 @@ def get_mnist_model():
     model = Sequential(
         Conv2d(1, 32, 3, 1, 1),
         nn.ReLU(),
-        Conv2d(32, 32, 3, 1, 1),
+        Conv2d(32, 64, 3, 1, 1),
         nn.ReLU(),
-        nn.MaxPool2d(2,2),
-        Conv2d(32, 32, 3, 1, 1),
-        nn.ReLU(),
-        Conv2d(32, 32, 3, 1, 1),
-        nn.ReLU(),
-        nn.MaxPool2d(2, 2),
+        MaxPool2d(2,2),
         nn.Flatten(),
-        Linear(7*7*32, 10)
+        Linear(14*14*64, 512),
+        nn.ReLU(),
+        Linear(512, 10)
     )
     return model
 
-def get_mnist_data(transform, batch_size=16):
+def get_mnist_data(transform, batch_size=32):
     train = torchvision.datasets.MNIST((base_path / 'data').as_posix(), train=True, download=True, transform=transform)
-    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=False)
 
     test = torchvision.datasets.MNIST((base_path / 'data').as_posix(), train=False, download=True, transform=transform)
     test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=True)
@@ -50,11 +47,15 @@ def prepare_mnist_model(model, model_path=(base_path / 'examples' / 'model.pth')
         state_dict = torch.load(model_path)
         model.load_state_dict(state_dict)
     else: 
+        device = 'cuda'
+        model = model.to(device)
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
         model.train()
         for e in range(epochs):
             for i, (x, y) in enumerate(train_loader):
+                x = x.to(device)
+                y = y.to(device)
                 y_hat = model(x)
                 loss  = loss_fn(y_hat, y)
                 loss.backward()

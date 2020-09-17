@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Function
 
-from .utils import identity_fn, gamma_fn, add_epsilon_fn
+from .utils import identity_fn, gamma_fn, add_epsilon_fn, normalize
 
 def _forward_rho(rho, incr, ctx, input, weight, bias):
     ctx.save_for_backward(input, weight, bias)
@@ -89,7 +89,7 @@ def _backward_alpha_beta(alpha, beta, ctx, relevance_output):
     pos_rel = f(input_pos, input_neg, weights_pos, weights_neg)
     neg_rel = f(input_neg, input_pos, weights_pos, weights_neg)
 
-    return pos_rel * alpha - neg_rel * beta, *[None]*2        
+    return pos_rel * alpha - neg_rel * beta, None, None
 
 class LinearAlpha1Beta0(Function):
     @staticmethod
@@ -125,7 +125,10 @@ def _backward_pattern(ctx, relevance_output):
 
     relevance_input  = F.linear(relevance_output, P.t(), bias=None)
     relevance_input  = relevance_input * input
-    return relevance_input, *[None] * 3
+
+    # relevance_input  = normalize(relevance_input)
+
+    return relevance_input, None, None, None
 
 
 class LinearPatternAttribution(Function):

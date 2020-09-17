@@ -14,3 +14,16 @@ def gamma_fn(gamma):
 # incrs
 add_epsilon_fn = lambda e: lambda x:   x + ((x > 0).float()*2-1) * e
 
+
+
+# Other stuff
+def safe_divide(a, b):
+    return a / (b + (b == 0).float())
+
+def normalize(x, range=(-1, 1)):
+    absmax = torch.abs(x).max(axis=1, keepdims=True)[0]
+
+    # print(x.view(-1)[:100])
+    # print(safe_divide(x, absmax).view(-1)[:100])
+    # assert False
+    return safe_divide(x, absmax)

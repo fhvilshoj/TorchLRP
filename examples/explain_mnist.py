@@ -26,24 +26,9 @@ def load_patterns(file_name):
     with open(file_name, 'rb') as f: p = pickle.load(f)
     return p
 
-def heatmap(R,sx,sy, ax):
-    R = R.reshape(4, 4, 28, 28)
-    R = np.transpose(R, (0, 2, 1, 3))
-    R = R.reshape(4*28, 4*28)
-
-    b = 10*((np.abs(R)**3.0).mean()**(1.0/3))
-
-    from matplotlib.colors import ListedColormap
-    my_cmap = plt.cm.seismic(np.arange(plt.cm.seismic.N))
-    my_cmap[:,0:3] *= 0.85
-    my_cmap = ListedColormap(my_cmap)
-
-    ax.axis('off')
-    ax.imshow(R,cmap=my_cmap,vmin=-b,vmax=b,interpolation='nearest')
-
 def prepare_batch_for_plotting(a, nrow=3, cmap='seismic'):
     # Normalize
-    a /= torch.abs(a).view(a.size(0), -1).max(1)[0].view(-1, 1, 1, 1) + 1e-6
+    a /= torch.abs(a).view(a.size(0), -1).max(1)[0].view(-1, 1, 1, 1) + 1e-10
 
     # Make image grid
     grid = torchvision.utils.make_grid(a, nrow=nrow)
@@ -54,7 +39,7 @@ def prepare_batch_for_plotting(a, nrow=3, cmap='seismic'):
 
 def plot_attribution(a, ax_, preds, title, cmap='seismic'):
     b = 1.
-    # b = 10*((np.abs(a)**3.0).mean()**(1.0/3)) # L_3 norm? 
+    if title != "Input": b = 10*((np.abs(a)**3.0).mean()**(1.0/3)) # L_3 norm? 
     ax_.imshow(a, cmap=cmap, vmin=-b, vmax=b)
     ax_.axis('off')
     cols = (a.shape[1] - 2) // 30
@@ -69,10 +54,11 @@ def main(args):
 
     model = get_mnist_model()
     prepare_mnist_model(model, epochs=args.epochs, train_new=args.train_new)
+    model = model.cpu()
     train_loader, test_loader = get_mnist_data(transform=torchvision.transforms.ToTensor(), batch_size=args.batch_size)
 
     # Sample batch
-    x, y = next(iter(test_loader))
+    for x, y in train_loader: break
     x = x[:num_samples_plot]
     y = y[:num_samples_plot]
     x.requires_grad_(True)
@@ -148,7 +134,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("MNIST LRP Example")
-    parser.add_argument('--batch_size', type=int, default=128)
+    parser.add_argument('--batch_size', type=int, default=500)
     parser.add_argument('--train_new', action='store_true', help='Train new predictive model')
     parser.add_argument('--epochs', '-e', type=int, default=5)
     parser.add_argument('--seed', '-d', type=int)

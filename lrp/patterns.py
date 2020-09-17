@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from .functional.utils import safe_divide
 
 from tqdm import tqdm
 
@@ -14,101 +15,118 @@ __all__  = [
     https://github.com/albermax/innvestigate/blob/master/innvestigate/analyzer/pattern_based.py
 
 """
+class RunningMean:
+    def __init__(self, shape):
+        self.value = torch.zeros(shape)
+        self.count = 0
 
-def _safe_divide(a, b):
-    return a / (b + (b==0).float())
+    def update(self, mean, cnt):
+        total       = self.count + cnt
+        new_factor  = safe_divide(cnt, total)
+        old_factor  = 1 - new_factor
+        self.value  = self.value * old_factor + mean * (new_factor)
+        self.count += cnt
 
-def _prod(module, input, output, mask_fn):
-    mask = mask_fn(output).float()
-    output_ = output * mask
+def _prod(module, x, y, mask):
+    y_masked = y * mask
 
     if isinstance(module, torch.nn.Linear):
-        return input.t() @ mask, output, input.t() @ output_, module.weight, lambda w: w.t()
+        W       = module.weight     # only for linear layers
+        W_fn    = lambda w: w.t()   # only for linear layers
 
     elif isinstance(module, torch.nn.Conv2d): 
         p1, p2 = module.padding
         s1, s2 = module.stride
         k1, k2 = module.kernel_size
 
-        # Eprint("Pad shape: ", F.pad(input, (p2, p2, p1, p1)).shape, input.shape, p1, p2)
-        input = F.pad(input, (p1, p1, p2, p2)).unfold(2, k1, s1).unfold(3, k2, s2)
-        _, c, h, w, *_ = input.shape # [bs, c, h, w, kh, kw]
+        x = F.pad(x, (p1, p1, p2, p2)).unfold(2, k1, s1).unfold(3, k2, s2)
+        bs, c, h, w, *_ = x.shape # [bs, c, h, w, kh, kw]
 
-        input = input.permute(1, 4, 5, 0, 2, 3).contiguous() 
-        input = input.view( c * k1 * k2, -1) # [ c*kh*kw, bs*h*w ]
+        x = x.permute(0, 2, 3, 1, 4, 5).contiguous() 
+        x = x.view( -1, c*k1*k2, ) # [ bs*h*w, c*kh*kw ]
 
         def reshape_output(o):
             o = o.permute(0, 2, 3, 1).contiguous()
-            return o.view(-1, module.out_channels)
+            return o.view(-1, module.out_channels) 
 
-        # [ bs, c_out, h, w ]
-        # output_ = output_.permute(0, 2, 3, 1).contiguous()
-        # [ bs*h*w, c_out ]
-        # output = output.view(-1, module.out_channels)
-        output_ = reshape_output(output_)
-        output  = reshape_output(output)
-        mask    = reshape_output(mask)
-        return input @ mask, output, input @ output_, module.weight.view(module.out_channels, -1), lambda w: w.view(module.weight.shape)
+        y_masked    = reshape_output(y_masked)  # [ bs, h, w, c ] -> [ bs*h*w, out_c ]
+        y           = reshape_output(y)         # [ bs, h, w, c ] -> [ bs*h*w, out_c ]
+        mask        = reshape_output(mask)      # [ bs, h, w, c ] -> [ bs*h*w, out_c ]
+
+        W       = module.weight.view(module.out_channels, -1)
+        W_fn    = lambda w: w.view(module.weight.shape)
+
     else:
         raise NotImplmentedError()
 
+    cnt     = mask.sum(axis=0, keepdims=True)
+    cnt_all = torch.ones_like(mask).sum(axis=0, keepdims=True)
+
+    x_mean  = safe_divide(x.t() @ mask, cnt)
+    xy_mean = safe_divide(x.t() @ y_masked, cnt)
+    y_mean  = safe_divide(y.sum(0), cnt_all)
+
+    return cnt, cnt_all, x_mean, y_mean, xy_mean, W, W_fn
+
 def _fit_pattern(model, train_loader, max_iter, mask_fn = lambda y: torch.ones_like(y)):
-    stats_in    = [] 
-    stats_out   = []
-    stats_prod  = []
+    stats_x     = [] 
+    stats_y     = []
+    stats_xy    = []
     weights     = []
-    cnt         = 0
-    cnt_all     = 0
+    cnt         = []
+    cnt_all     = []
 
     first = True
     for b, (x, _) in enumerate(tqdm(train_loader)): 
 
         i = 0
-        # with torch.no_grad():
         for m in model:
-            y = m(x)
+            y = m(x) # Note, this includes bias.
             if not (isinstance(m, torch.nn.Linear) or isinstance(m, torch.nn.Conv2d)): 
                 x = y.clone()
                 continue
             
-            x_, y_, xy_prod, w, w_fn = _prod(m, x, y, mask_fn)
+            mask = mask_fn(y).float()
+            if isinstance(m, torch.nn.Conv2d): y_wo_bias = y - m.bias.view(-1, 1, 1) 
+            else:                              y_wo_bias = y - m.bias
+
+            cnt_, cnt_all_, x_, y_, xy_, w, w_fn = _prod(m, x, y_wo_bias, mask)
 
             if first:
-                stats_in.append(x_)
-                stats_out.append(y_.sum(0)) # Use all y
-                stats_prod.append(xy_prod)
+                stats_x.append(RunningMean(x_.shape))
+                stats_y.append(RunningMean(y_.shape)) # Use all y
+                stats_xy.append(RunningMean(xy_.shape))
                 weights.append((w, w_fn))
-            else:
-                stats_in[i]     += x_
-                stats_out[i]    += y_.sum(0)
-                stats_prod[i]   += xy_prod
+
+            stats_x[i].update(x_, cnt_)
+            stats_y[i].update(y_.sum(0), cnt_all_)
+            stats_xy[i].update(xy_, cnt_)
 
             x = y.clone()
-            cnt += x_.size(0)
-            cnt_all += x.size(0)
             i += 1
+
             
-        first =False
-        if max_iter is not None and b == max_iter: break
+        first = False
 
-    mu_x =  [x  / cnt     for x  in stats_in]
-    mu_y =  [y  / cnt_all for y  in stats_out]
-    mu_xy = [xy / cnt     for xy in stats_prod]
+        if max_iter is not None and b+1 == max_iter: break
 
-    def pattern(x_, y_, xy_, W2d):
-        # W2d: [out, in]
+    def pattern(x_mean, y_mean, xy_mean, W2d):
+        x_  = x_mean.value
+        y_  = y_mean.value
+        xy_ = xy_mean.value
+
         W, w_fn = W2d
-        # ExEy = x_.view(-1, 1) * y_.view(1, -1)
         ExEy = x_ * y_
-        
         cov_xy = xy_ - ExEy # [in, out]
+
         w_cov_xy = torch.diag(W @ cov_xy) # [out,]
-        A = _safe_divide(cov_xy, w_cov_xy[None, :])
+
+        A = safe_divide(cov_xy, w_cov_xy[None, :])
         A = w_fn(A) # Reshape to original kernel size
 
         return A
 
-    patterns = [pattern(*vars) for vars in zip(mu_x, mu_y, mu_xy, weights)]
+    patterns = [pattern(*vars) for vars in zip(stats_x, stats_y, stats_xy, weights)]
     return patterns
 
 

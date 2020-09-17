@@ -26,7 +26,7 @@ def _backward_rho(ctx, relevance_output):
     relevance_input  = F.conv_transpose2d(relevance_output, weight, None, padding=1)
     relevance_input  = relevance_input * input
 
-    return relevance_input, *[None]*6
+    return relevance_input, None, None, None, None, None, None, 
 
 
 
@@ -91,7 +91,7 @@ def _conv_alpha_beta_backward(alpha, beta, ctx, relevance_output):
         pos_rel = f(input_pos, input_neg, weights_pos, weights_neg)
         neg_rel = f(input_neg, input_pos, weights_pos, weights_neg)
 
-        return pos_rel * alpha - neg_rel * beta, *[None]*6        
+        return pos_rel * alpha - neg_rel * beta, None, None, None, None, None, None
 
 
 class Conv2DAlpha1Beta0(Function):
@@ -118,7 +118,6 @@ def _pattern_forward(attribution, ctx, input, weight, bias, stride, padding, dil
     Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
     ctx.save_for_backward(input, weight, pattern, bias)
 
-    # TODO: Currently I don't handle dilation and groups
     ctx.stride = stride
     ctx.padding = padding
     ctx.attribution = attribution
@@ -126,6 +125,7 @@ def _pattern_forward(attribution, ctx, input, weight, bias, stride, padding, dil
 
 def _pattern_backward(ctx, relevance_output):
     input, weight, P, bias = ctx.saved_tensors
+
     if ctx.attribution: P = weight * P            # PatternAttribution
 
     Z                = F.conv2d(input, P, bias=bias, stride=ctx.stride, padding=ctx.padding)
@@ -133,7 +133,8 @@ def _pattern_backward(ctx, relevance_output):
     relevance_output = relevance_output / Z
     relevance_input  = F.conv_transpose2d(relevance_output, P, padding=ctx.padding)
     relevance_input  = relevance_input * input
-    return relevance_input, *[None]*7
+
+    return relevance_input, None, None, None, None, None, None, None
 
 class Conv2DPatternAttribution(Function):
     @staticmethod
