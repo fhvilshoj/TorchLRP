@@ -121,10 +121,10 @@ def _backward_pattern(ctx, relevance_output):
     if  ctx.attribution: P = weight * P                 # PatternAttribution
     Z                = F.linear(input, P, bias)
     Z               += ((Z > 0).float()*2.-1) * 1e-6    # Safety tiny normalization to avoid dividing with zero
-    relevance_output = relevance_output / Z
 
+    # relevance_output = relevance_output / Z
     relevance_input  = F.linear(relevance_output, P.t(), bias=None)
-    relevance_input  = relevance_input * input
+    # relevance_input  = relevance_input * input
 
     # relevance_input  = normalize(relevance_input)
 

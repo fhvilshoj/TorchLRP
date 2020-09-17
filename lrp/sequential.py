@@ -1,5 +1,6 @@
 import torch
 from . import Linear, Conv2d
+from .maxpool import MaxPool2d
 
 class Sequential(torch.nn.Sequential):
     def forward(self, input, explain=False, rule="epsilon", pattern=None):
@@ -10,6 +11,10 @@ class Sequential(torch.nn.Sequential):
                     input = module.forward(input, explain=True, rule=rule, pattern=pattern.pop(0))
                 else:                   
                     input = module.forward(input, explain=True, rule=rule)
+
+            elif  isinstance(module, MaxPool2d):
+                input = module.forward(input, explain=True, rule=rule)
+
             else: 
                 input = module(input)
         return input

@@ -130,9 +130,9 @@ def _pattern_backward(ctx, relevance_output):
 
     Z                = F.conv2d(input, P, bias=bias, stride=ctx.stride, padding=ctx.padding)
     Z               += ((Z > 0).float()*2-1) * 1e-6
-    relevance_output = relevance_output / Z
+    # relevance_output = relevance_output / Z
     relevance_input  = F.conv_transpose2d(relevance_output, P, padding=ctx.padding)
-    relevance_input  = relevance_input * input
+    # relevance_input  = relevance_input * input
 
     return relevance_input, None, None, None, None, None, None, None
 
