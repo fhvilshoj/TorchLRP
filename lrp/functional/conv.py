@@ -2,7 +2,7 @@ import torch
 import torch.nn.functional as F
 from torch.autograd import Function
 
-from .utils import identity_fn, gamma_fn, add_epsilon_fn
+from .utils import identity_fn, gamma_fn, add_epsilon_fn, normalize
 
 def _forward_rho(rho, incr, ctx, input, weight, bias, stride, padding, dilation, groups):
         ctx.save_for_backward(input, weight, bias)
@@ -116,7 +116,7 @@ class Conv2DAlpha2Beta1(Function):
 
 def _pattern_forward(attribution, ctx, input, weight, bias, stride, padding, dilation, groups, pattern):
     Z = F.conv2d(input, weight, bias, stride, padding, dilation, groups)
-    ctx.save_for_backward(input, weight, pattern, bias)
+    ctx.save_for_backward(input, weight, pattern)
 
     ctx.stride = stride
     ctx.padding = padding
@@ -124,15 +124,10 @@ def _pattern_forward(attribution, ctx, input, weight, bias, stride, padding, dil
     return Z
 
 def _pattern_backward(ctx, relevance_output):
-    input, weight, P, bias = ctx.saved_tensors
+    input, weight, P = ctx.saved_tensors
 
-    if ctx.attribution: P = weight * P            # PatternAttribution
-
-    Z                = F.conv2d(input, P, bias=bias, stride=ctx.stride, padding=ctx.padding)
-    Z               += ((Z > 0).float()*2-1) * 1e-6
-    # relevance_output = relevance_output / Z
-    relevance_input  = F.conv_transpose2d(relevance_output, P, padding=ctx.padding)
-    # relevance_input  = relevance_input * input
+    if ctx.attribution: P = P * weight # PatternAttribution
+    relevance_input  = F.conv_transpose2d(relevance_output, P, padding=ctx.padding, stride=ctx.stride)
 
     return relevance_input, None, None, None, None, None, None, None
 

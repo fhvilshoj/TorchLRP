@@ -30,6 +30,8 @@ class RunningMean:
 def _prod(module, x, y, mask):
     y_masked = y * mask
 
+    x_copy = x * 1. #  [bs , h]
+
     if isinstance(module, torch.nn.Linear):
         W       = module.weight     # only for linear layers
         W_fn    = lambda w: w.t()   # only for linear layers
@@ -43,6 +45,7 @@ def _prod(module, x, y, mask):
         bs, c, h, w, *_ = x.shape # [bs, c, h, w, kh, kw]
 
         x = x.permute(0, 2, 3, 1, 4, 5).contiguous() 
+        # [ bs, h ]
         x = x.view( -1, c*k1*k2, ) # [ bs*h*w, c*kh*kw ]
 
         def reshape_output(o):
@@ -53,9 +56,11 @@ def _prod(module, x, y, mask):
         y           = reshape_output(y)         # [ bs, h, w, c ] -> [ bs*h*w, out_c ]
         mask        = reshape_output(mask)      # [ bs, h, w, c ] -> [ bs*h*w, out_c ]
 
-        W       = module.weight.view(module.out_channels, -1)
-        W_fn    = lambda w: w.view(module.weight.shape)
-
+        W       = module.weight.view(module.out_channels, -1) 
+        def W_fn(w):
+            w = w.view(W.t().shape)
+            w = w.t().contiguous()
+            return w.view(module.weight.shape)
     else:
         raise NotImplmentedError()
 
