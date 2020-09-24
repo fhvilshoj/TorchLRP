@@ -4,7 +4,6 @@ from torch.autograd import Function
 
 class MaxPooling2d(Function):
     @staticmethod
-    # kernel_size: Union[T, Tuple[T, ...]], stride: Optional[Union[T, Tuple[T, ...]]] = None, padding: Union[T, Tuple[T, ...]] = 0, dilation: Union[T, Tuple[T, ...]] = 1
     def forward(ctx, input, kernel_size=2, stride=None, padding=0):
         ctx.kernel_size = kernel_size
         ctx.stride      = stride
@@ -23,7 +22,6 @@ class MaxPooling2d(Function):
         relevance_input = relevance_input * input
 
         return relevance_input, None, None, None 
-
 
 maxpool2d = {
         "gradient":             F.max_pool2d,
