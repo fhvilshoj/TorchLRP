@@ -20,7 +20,7 @@ from lrp.patterns import fit_patternnet, fit_patternnet_positive # PatternNet pa
 
 def store_patterns(file_name, patterns):
     with open(file_name, 'wb') as f:
-        pickle.dump(patterns, f)
+        pickle.dump([p.detach().cpu().numpy() for p in patterns], f)
 
 
 def load_patterns(file_name): 
@@ -85,17 +85,19 @@ def plot_attribution(a, ax_, preds, title, cmap='seismic'):
     ax_.set_title(title)
 
 def main(args): 
+    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     num_samples_plot = min(args.batch_size, 9)
 
     model = get_mnist_model()
     prepare_mnist_model(model, epochs=args.epochs, train_new=args.train_new)
-    model = model.cpu()
+    model = model.to(args.device)
     train_loader, test_loader = get_mnist_data(transform=torchvision.transforms.ToTensor(), batch_size=args.batch_size)
 
     # Sample batch from test_loader
     for x, y in test_loader: break
-    x = x[:num_samples_plot]
-    y = y[:num_samples_plot]
+    x = x[:num_samples_plot].to(args.device)
+    y = y[:num_samples_plot].to(args.device)
     x.requires_grad_(True)
 
     with torch.no_grad(): 
@@ -133,17 +135,18 @@ def main(args):
     # # # # Patterns for PatternNet and PatternAttribution
     all_patterns_path = (base_path / 'examples' / 'pattern_all.pkl').as_posix()
     if not os.path.exists(all_patterns_path):  # Either load of compute them
-        patterns_all = fit_patternnet(model, train_loader)
+        patterns_all = fit_patternnet(model, train_loader, device=args.device)
         store_patterns(all_patterns_path, patterns_all)
     else:
-        patterns_all = load_patterns(all_patterns_path)
+        patterns_all = [p.to(args.device) for p in load_patterns(all_patterns_path)]
 
     pos_patterns_path = (base_path / 'examples' / 'pattern_pos.pkl').as_posix()
     if not os.path.exists(pos_patterns_path):
         patterns_pos = fit_patternnet_positive(model, train_loader)#, max_iter=1)
         store_patterns(pos_patterns_path, patterns_pos)
     else:
-        patterns_pos = load_patterns(pos_patterns_path)
+        patterns_pos = [p.to(args.device) for p in load_patterns(pos_patterns_path)]
+
 
     # # # Plotting
     fig, ax = plt.subplots(2, 5, figsize=(10, 5))

@@ -1,8 +1,8 @@
 # Implementation of LRP for pytorch
-A simple PyTorch implementation of the most basic Layer-Wise Relevance
-Propagation rules [1, 2] for linear layers and convolutional layers.
+PyTorch implementation of the most basic Layer-Wise Relevance Propagation (LRP)
+rules, [1, 2, 3], for linear layers and convolutional layers.
 
-The modules simply decorates `torch.nn.Sequential`, `torch.nn.Linear`, and
+The modules decorates `torch.nn.Sequential`, `torch.nn.Linear`, and
 `torch.nn.Conv2d` to be able to use `autograd` backprop algorithm to compute
 explanations.
 
@@ -35,6 +35,7 @@ model = Sequential(
     lrp.Linear(14*14*32, 10)
 )
 
+x = ... # business as usual
 y_hat = model.forward(x, explain=True, rule="alpha2beta1")
 y_hat = y_hat[torch.arange(batch_size), y_hat.max(1)[1]] # Choose maximizing output neuron
 y_hat = y_hat.sum()

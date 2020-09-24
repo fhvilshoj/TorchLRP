@@ -16,8 +16,8 @@ __all__  = [
 
 """
 class RunningMean:
-    def __init__(self, shape):
-        self.value = torch.zeros(shape)
+    def __init__(self, shape, device):
+        self.value = torch.zeros(shape, device=device)
         self.count = 0
 
     def update(self, mean, cnt):
@@ -73,7 +73,7 @@ def _prod(module, x, y, mask):
 
     return cnt, cnt_all, x_mean, y_mean, xy_mean, W, W_fn
 
-def _fit_pattern(model, train_loader, max_iter, mask_fn = lambda y: torch.ones_like(y)):
+def _fit_pattern(model, train_loader, max_iter, device, mask_fn = lambda y: torch.ones_like(y)):
     stats_x     = [] 
     stats_y     = []
     stats_xy    = []
@@ -83,6 +83,7 @@ def _fit_pattern(model, train_loader, max_iter, mask_fn = lambda y: torch.ones_l
 
     first = True
     for b, (x, _) in enumerate(tqdm(train_loader)): 
+        x = x.to(device)
 
         i = 0
         for m in model:
@@ -91,16 +92,16 @@ def _fit_pattern(model, train_loader, max_iter, mask_fn = lambda y: torch.ones_l
                 x = y.clone()
                 continue
             
-            mask = mask_fn(y).float()
+            mask = mask_fn(y).float().to(device)
             if isinstance(m, torch.nn.Conv2d): y_wo_bias = y - m.bias.view(-1, 1, 1) 
             else:                              y_wo_bias = y - m.bias
 
             cnt_, cnt_all_, x_, y_, xy_, w, w_fn = _prod(m, x, y_wo_bias, mask)
 
             if first:
-                stats_x.append(RunningMean(x_.shape))
-                stats_y.append(RunningMean(y_.shape)) # Use all y
-                stats_xy.append(RunningMean(xy_.shape))
+                stats_x.append(RunningMean(x_.shape, device))
+                stats_y.append(RunningMean(y_.shape, device)) # Use all y
+                stats_xy.append(RunningMean(xy_.shape, device))
                 weights.append((w, w_fn))
 
             stats_x[i].update(x_, cnt_)
@@ -136,11 +137,11 @@ def _fit_pattern(model, train_loader, max_iter, mask_fn = lambda y: torch.ones_l
 
 
 @torch.no_grad()
-def fit_patternnet(model, train_loader, max_iter=None):
-    return _fit_pattern(model, train_loader, max_iter)
+def fit_patternnet(model, train_loader, max_iter=None, device='cpu'):
+    return _fit_pattern(model, train_loader, max_iter, device)
 
 @torch.no_grad()
-def fit_patternnet_positive(model, train_loader, max_iter=None):
-    return _fit_pattern(model, train_loader, max_iter, lambda y: y >= 0)
+def fit_patternnet_positive(model, train_loader, max_iter=None, device='cpu'):
+    return _fit_pattern(model, train_loader, max_iter, device, lambda y: y >= 0)
 
 
