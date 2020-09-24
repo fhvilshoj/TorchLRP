@@ -73,11 +73,16 @@ For a complete running example, which generates this plot:
 Please see [examples/explain_mnist.py](examples/explain_mnist.py).
 
 ## Possible bugs
-Judging from the plot, something is probably wrong with the positive
-PatternAttribution and PatternNet, as it doesn't compare visually to, e.g.,
-[this implementation](https://github.com/albermax/innvestigate/blob/master/examples/notebooks/mnist_compare_methods.ipynb).
+**Fixed** - Description
+- [ ] According to [3] Section 10.3.2, it is apparently a good idea to use gradient of average pooling for LRP backpropagation. I have started to implement this but not finished, as I didn't need it so far.
+
+- [x] _Fixed in `commit 4277098f4f37a81ae9a21154c8cba49cae918770`__. Judging
+  from the plot, something is probably wrong with the positive
+  PatternAttribution and PatternNet, as it doesn't compare visually to, e.g.,
+  [this implementation](https://github.com/albermax/innvestigate/blob/master/examples/notebooks/mnist_compare_methods.ipynb).
 
 
 ## References
-[1] Bach, S., Binder, A., Montavon, G., Klauschen, F., Müller, K.R. and Samek, W., 2015. On pixel-wise explanations for non-linear classifier decisions by layer-wise relevance propagation. PloS one, 10(7), p.e0130140.
-[2] Kindermans, P.J., Schütt, K.T., Alber, M., Müller, K.R., Erhan, D., Kim, B. and Dähne, S., 2017. Learning how to explain neural networks: Patternnet and patternattribution. arXiv preprint arXiv:1705.05598.
+[1] Bach, S., Binder, A., Montavon, G., Klauschen, F., Müller, K.R. and Samek, W., 2015. On pixel-wise explanations for non-linear classifier decisions by layer-wise relevance propagation. PloS one, 10(7), p.e0130140.  
+[2] Kindermans, P.J., Schütt, K.T., Alber, M., Müller, K.R., Erhan, D., Kim, B. and Dähne, S., 2017. Learning how to explain neural networks: Patternnet and patternattribution. arXiv preprint arXiv:1705.05598.  
+[3] Montavon, G., Binder, A., Lapuschkin, S., Samek, W. and Müller, K.R., 2019. Layer-wise relevance propagation: an overview. In Explainable AI: interpreting, explaining and visualizing deep learning (pp. 193-209). Springer, Cham.  
