@@ -69,15 +69,15 @@ patterns_pos = fit_patternnet_positive(model, train_loader)
 _Note:_ Biases are currently ignored in the alphabeta-rule implementations.
 
 ## MNIST
-For a complete running example, please see [examples/explain_mnist.py](examples/plots/mnist_explanations.py).
+For a complete running example, please see [examples/explain_mnist.py](examples/explain_mnist.py).
 The code generates this plot: 
-<img src="examples/Example_explanations.png" style="max-width: 500px;"/>
+<img src="examples/plots/mnist_explanations.png" style="max-width: 500px;"/>
 
 ## VGG / ImageNet
 It is also possible to use this code for pretrained vgg models from `torchvision`,
 by using the `lrp.convert_vgg` function to convert `torch.nn.Conv2d` and `torch.nn.Linear` layers to `lrp.Conv2d` and `lrp.Linear`, respectively. 
 
-[examples/explain_vgg.py](examples/explain_vgg.py)
+![examples/explain_vgg.py](examples/explain_vgg.py)
 
 
 It takes a bit to make the vgg example work. First, you need An imagenet dataloader.
