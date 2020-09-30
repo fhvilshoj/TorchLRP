@@ -5,6 +5,7 @@ import pathlib
 base_path = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.insert(0, base_path.as_posix())
 
+import pickle
 import os
 import torch
 import torch.nn.functional as F
@@ -15,26 +16,21 @@ from lrp import Sequential, Linear, Conv2d, MaxPool2d
 
 _standard_transform = torchvision.transforms.Compose([
     torchvision.transforms.ToTensor(),
-    # torchvision.transforms.Normalize((0.1307,), (0.3081,))
 ])
 
-class Identity(torch.nn.Module):
-    def forward(self, input):
-        return input
-
+# # # # # # # # # # # # # # # # # # # # # 
+# MNIST
+# # # # # # # # # # # # # # # # # # # # # 
 def get_mnist_model():
     model = Sequential(
         Conv2d(1, 32, 3, 1, 1),
         nn.ReLU(),
-        # Identity(),
         Conv2d(32, 64, 3, 1, 1),
         nn.ReLU(),
-        # Identity(),
         MaxPool2d(2,2),
         nn.Flatten(),
         Linear(14*14*64, 512),
         nn.ReLU(),
-        # Identity(),
         Linear(512, 10)
     )
     return model
@@ -47,7 +43,7 @@ def get_mnist_data(transform, batch_size=32):
     test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=False)
     return train_loader, test_loader
 
-def prepare_mnist_model(model, model_path=(base_path / 'examples' / 'model.pth').as_posix(), epochs=1, lr=1e-3, train_new=False, transform=_standard_transform):
+def prepare_mnist_model(model, model_path=(base_path / 'examples' / 'models' / 'mnist_model.pth').as_posix(), epochs=1, lr=1e-3, train_new=False, transform=_standard_transform):
     train_loader, test_loader = get_mnist_data(transform)
 
     if os.path.exists(model_path) and not train_new: 
@@ -73,3 +69,15 @@ def prepare_mnist_model(model, model_path=(base_path / 'examples' / 'model.pth')
                 if i%10 == 0: 
                     print("\r[%i/%i, %i/%i] loss: %.4f acc: %.4f" % (e, epochs, i, len(train_loader), loss.item(), acc.item()), end="", flush=True)
         torch.save(model.state_dict(), model_path)
+
+# # # # # # # # # # # # # # # # # # # # # 
+# Patterns
+# # # # # # # # # # # # # # # # # # # # # 
+def store_patterns(file_name, patterns):
+    with open(file_name, 'wb') as f:
+        pickle.dump([p.detach().cpu().numpy() for p in patterns], f)
+
+def load_patterns(file_name): 
+    with open(file_name, 'rb') as f: p = pickle.load(f)
+    return p
+

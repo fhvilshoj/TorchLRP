@@ -71,7 +71,7 @@ _Note:_ Biases are currently ignored in the alphabeta-rule implementations.
 For a complete running example, which generates this plot: 
 <img src="examples/Example_explanations.png" style="max-width: 500px;"/>
 
-Please see [examples/explain_mnist.py](examples/explain_mnist.py).
+Please see [examples/explain_mnist.py](examples/plots/mnist_explanations.py).
 
 ## Possible bugs
 **Fixed** - Description

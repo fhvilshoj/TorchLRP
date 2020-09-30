@@ -1,5 +1,8 @@
+config.ini
 playground
 data
+
+examples/patterns/vgg*
 
 # Created by https://www.toptal.com/developers/gitignore/api/vim,linux,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=vim,linux,python

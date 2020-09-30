@@ -12,3 +12,4 @@ dependencies:
     - torchvision
     - matplotlib=3.3.1
     - tqdm=4.48
+    - scipy=1.5.2
