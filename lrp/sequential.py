@@ -15,7 +15,7 @@ def grad_decorator_fn(module):
 avoid_normalization_on = ['relu', 'maxp']
 def do_normalization(rule, module):
     if "pattern" not in rule.lower(): return False
-    return not str(module)[:4].lower() in ["relu", "maxp"] 
+    return not str(module)[:4].lower() in avoid_normalization_on
 
 def is_kernel_layer(module):
     return isinstance(module, Conv2d) or isinstance(module, Linear)

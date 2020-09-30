@@ -27,6 +27,7 @@ class RunningMean:
         self.value  = self.value * old_factor + mean * (new_factor)
         self.count += cnt
 
+
 def _prod(module, x, y, mask):
     y_masked = y * mask
 
