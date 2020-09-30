@@ -80,7 +80,7 @@ by using the `lrp.convert_vgg` function to convert `torch.nn.Conv2d` and `torch.
 <img src="examples/plots/vgg16_explanations.png" style="max-width: 500px;"/>
 
 It takes a bit to make the vgg example work. First, you need An imagenet dataloader.
-In the code, we use the dataloader from the [TorchImageNet](https://github.com/fhvilshoj/TorchImageNet) repo.
+In the code, we use the dataloader from the [torch_imagenet](https://github.com/fhvilshoj/torch_imagenet) repo.
 You could also make your own. 
 
 The most interesting parts is converting the torch vgg models, such that they can be
@@ -97,7 +97,7 @@ Afterwards, explanations can be produced as the example above.
 
 #### Note:
 The code example reads a `config.ini` file from the root of this project. In 
-that file you can specify the parent of the `TorchImageNet` repo such that the
+that file you can specify the parent of the `torch_imagenet` repo such that the
 correct dataloader is loaded:
 
 ```config
