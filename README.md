@@ -68,10 +68,43 @@ patterns_pos = fit_patternnet_positive(model, train_loader)
 
 _Note:_ Biases are currently ignored in the alphabeta-rule implementations.
 
-For a complete running example, which generates this plot: 
+## MNIST
+For a complete running example, please see [examples/explain_mnist.py](examples/plots/mnist_explanations.py).
+The code generates this plot: 
 <img src="examples/Example_explanations.png" style="max-width: 500px;"/>
 
-Please see [examples/explain_mnist.py](examples/plots/mnist_explanations.py).
+## VGG / ImageNet
+It is also possible to use this code for pretrained vgg models from `torchvision`,
+by using the `lrp.convert_vgg` function to convert `torch.nn.Conv2d` and `torch.nn.Linear` layers to `lrp.Conv2d` and `lrp.Linear`, respectively. 
+
+[examples/explain_vgg.py](examples/explain_vgg.py)
+
+
+It takes a bit to make the vgg example work. First, you need An imagenet dataloader.
+In the code, we use the dataloader from the [TorchImageNet](https://github.com/fhvilshoj/TorchImageNet) repo.
+You could also make your own. 
+
+The most interesting parts is converting the torch vgg models, such that they can be
+explained. To do so, do as follows:
+
+```python 
+vgg = torchvision.models.vgg16(pretrained=True).to(device)
+vgg.eval()
+lrp_vgg = lrp.convert_vgg(vgg).to(device)
+```
+
+The `lrp_vgg` model will then have the same parameters as the original network.
+Afterwards, explanations can be produced as the example above.
+
+#### Note:
+The code example reads a `config.ini` file from the root of this project. In 
+that file you can specify the parent of the `TorchImageNet` repo such that the
+correct dataloader is loaded:
+
+```config
+[DEFAULT]
+ImageNetDir = /home/user/example/data
+```
 
 ## Possible bugs
 **Fixed** - Description
