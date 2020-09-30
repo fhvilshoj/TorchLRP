@@ -77,7 +77,7 @@ The code generates this plot:
 It is also possible to use this code for pretrained vgg models from `torchvision`,
 by using the `lrp.convert_vgg` function to convert `torch.nn.Conv2d` and `torch.nn.Linear` layers to `lrp.Conv2d` and `lrp.Linear`, respectively. 
 
-![examples/explain_vgg.py](examples/explain_vgg.py)
+<img src="examples/plots/vgg16_explanations.png" style="max-width: 500px;"/>
 
 
 It takes a bit to make the vgg example work. First, you need An imagenet dataloader.
