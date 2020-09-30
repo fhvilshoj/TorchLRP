@@ -32,7 +32,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 config = configparser.ConfigParser()
 config.read((base_path / 'config.ini').as_posix())
 sys.path.append(config['DEFAULT']['ImageNetDir'])
-from imagenet.imagenet_dataset import ImagenetDataset
+from torch_imagenet import ImageNetDataset
 
 # Normalization as expected by pytorch vgg models
 # https://pytorch.org/docs/stable/torchvision/models.html
@@ -50,7 +50,7 @@ transform = T.Compose([
                  std = _std.flatten()    ),
 ])
 
-dataset = ImagenetDataset(transform=transform)
+dataset = ImageNetDataset(transform=transform)
 train_loader = torch.utils.data.DataLoader(dataset, batch_size=12, shuffle=True)
 # # # # # End ImageNet Data
 
