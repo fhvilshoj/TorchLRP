@@ -1,5 +1,5 @@
 # Implementation of LRP for pytorch
-PyTorch implementation of the most basic Layer-Wise Relevance Propagation (LRP)
+PyTorch implementation of some of the Layer-Wise Relevance Propagation (LRP)
 rules, [1, 2, 3], for linear layers and convolutional layers.
 
 The modules decorates `torch.nn.Sequential`, `torch.nn.Linear`, and
@@ -78,7 +78,6 @@ It is also possible to use this code for pretrained vgg models from `torchvision
 by using the `lrp.convert_vgg` function to convert `torch.nn.Conv2d` and `torch.nn.Linear` layers to `lrp.Conv2d` and `lrp.Linear`, respectively. 
 
 <img src="examples/plots/vgg16_explanations.png" style="max-width: 500px;"/>
-
 
 It takes a bit to make the vgg example work. First, you need An imagenet dataloader.
 In the code, we use the dataloader from the [TorchImageNet](https://github.com/fhvilshoj/TorchImageNet) repo.
