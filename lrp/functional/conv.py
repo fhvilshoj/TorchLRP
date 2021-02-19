@@ -3,6 +3,7 @@ import torch.nn.functional as F
 from torch.autograd import Function
 
 from .utils import identity_fn, gamma_fn, add_epsilon_fn, normalize
+from .. import trace
 
 def _forward_rho(rho, incr, ctx, input, weight, bias, stride, padding, dilation, groups):
         ctx.save_for_backward(input, weight, bias)
@@ -25,7 +26,9 @@ def _backward_rho(ctx, relevance_output):
     relevance_output = relevance_output / Z
     relevance_input  = F.conv_transpose2d(relevance_output, weight, None, padding=1)
     relevance_input  = relevance_input * input
-
+    # if we are tracing (i.e., keeping track of hidden layer relevance, put a copy of relevance_input in trace_stack)
+    if trace.trace_enabled:
+        trace.trace_stack.append(relevance_input.clone().detach())
     return relevance_input, None, None, None, None, None, None, 
 
 
