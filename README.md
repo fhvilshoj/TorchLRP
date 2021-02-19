@@ -21,6 +21,7 @@ To be able to import `lrp` as below, make sure that the `TorchLRP` directory is
 included in your path.
 
 ## Usage 
+
 The code can be used as follows:
 
 ```python 
@@ -45,6 +46,7 @@ y_hat.backward()
 explanation = x.grad
 ```
 
+
 **Implemented rules:**
 |Rule 							|Key 					| Note 												|
 |:------------------------------|:----------------------|:--------------------------------------------------|
@@ -68,10 +70,31 @@ patterns_pos = fit_patternnet_positive(model, train_loader)
 
 _Note:_ Biases are currently ignored in the alphabeta-rule implementations.
 
+
+### Trace intermediate relevances
+Thanks to [francescomalandrino](https://github.com/francescomalandrino), you can now also
+trace the intermediate relevances by enabling traces:
+
+```python
+... 
+lrp.trace.enable_and_clean()
+y_hat.backward()
+all_relevances=lrp.trace.collect_and_disable()
+
+for i,t in enumerate(all_relevances):
+    print(i,t.shape)
+```
+
 ## MNIST
 For a complete running example, please see [examples/explain_mnist.py](examples/explain_mnist.py).
 The code generates this plot: 
 <img src="examples/plots/mnist_explanations.png" style="max-width: 500px;"/>
+
+To run the example code, simply activate the conda environment and execute the code from the root of the project:
+```bash
+> conda activate torchlrp
+> python examples/explain_mnist.py
+```
 
 ## VGG / ImageNet
 It is also possible to use this code for pretrained vgg models from `torchvision`,
