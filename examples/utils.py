@@ -43,14 +43,14 @@ def get_mnist_data(transform, batch_size=32):
     test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=False)
     return train_loader, test_loader
 
-def prepare_mnist_model(model, model_path=(base_path / 'examples' / 'models' / 'mnist_model.pth').as_posix(), epochs=1, lr=1e-3, train_new=False, transform=_standard_transform):
+def prepare_mnist_model(args, model, model_path=(base_path / 'examples' / 'models' / 'mnist_model.pth').as_posix(), epochs=1, lr=1e-3, train_new=False, transform=_standard_transform):
     train_loader, test_loader = get_mnist_data(transform)
 
     if os.path.exists(model_path) and not train_new: 
-        state_dict = torch.load(model_path)
+        state_dict = torch.load(model_path, map_location=args.device)
         model.load_state_dict(state_dict)
     else: 
-        device = 'cuda'
+        device = args.device
         model = model.to(device)
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)

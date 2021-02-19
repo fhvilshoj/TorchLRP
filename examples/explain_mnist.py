@@ -17,6 +17,7 @@ from visualization import heatmap_grid
 base_path = pathlib.Path(__file__).parent.parent.absolute()
 sys.path.insert(0, base_path.as_posix())
 
+import lrp
 from lrp.patterns import fit_patternnet, fit_patternnet_positive # PatternNet patterns
 
 def plot_attribution(a, ax_, preds, title, cmap='seismic', img_shape=28):
@@ -37,7 +38,7 @@ def main(args):
 
     model = get_mnist_model()
     # Either train new model or load pretrained weights
-    prepare_mnist_model(model, epochs=args.epochs, train_new=args.train_new)
+    prepare_mnist_model(args, model, epochs=args.epochs, train_new=args.train_new)
     model = model.to(args.device)
     train_loader, test_loader = get_mnist_data(transform=torchvision.transforms.ToTensor(), batch_size=args.batch_size)
 
