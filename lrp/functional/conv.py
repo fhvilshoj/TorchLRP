@@ -26,9 +26,8 @@ def _backward_rho(ctx, relevance_output):
     relevance_output = relevance_output / Z
     relevance_input  = F.conv_transpose2d(relevance_output, weight, None, padding=1)
     relevance_input  = relevance_input * input
-    # if we are tracing (i.e., keeping track of hidden layer relevance, put a copy of relevance_input in trace_stack)
-    if trace.trace_enabled:
-        trace.trace_stack.append(relevance_input.clone().detach())
+
+    trace.do_trace(relevance_input) 
     return relevance_input, None, None, None, None, None, None, 
 
 
@@ -91,10 +90,12 @@ def _conv_alpha_beta_backward(alpha, beta, ctx, relevance_output):
             r2  = t2 * X2
 
             return r1 + r2
-        pos_rel = f(input_pos, input_neg, weights_pos, weights_neg)
-        neg_rel = f(input_neg, input_pos, weights_pos, weights_neg)
+        pos_rel         = f(input_pos, input_neg, weights_pos, weights_neg)
+        neg_rel         = f(input_neg, input_pos, weights_pos, weights_neg)
+        relevance_input = pos_rel * alpha - neg_rel * beta
 
-        return pos_rel * alpha - neg_rel * beta, None, None, None, None, None, None
+        trace.do_trace(relevance_input) 
+        return relevance_input, None, None, None, None, None, None
 
 
 class Conv2DAlpha1Beta0(Function):
@@ -132,6 +133,7 @@ def _pattern_backward(ctx, relevance_output):
     if ctx.attribution: P = P * weight # PatternAttribution
     relevance_input  = F.conv_transpose2d(relevance_output, P, padding=ctx.padding, stride=ctx.stride)
 
+    trace.do_trace(relevance_input) 
     return relevance_input, None, None, None, None, None, None, None
 
 class Conv2DPatternAttribution(Function):

@@ -22,9 +22,8 @@ def _backward_rho(ctx, relevance_output):
     relevance_output = relevance_output / Z
     relevance_input  = F.linear(relevance_output, weight.t(), bias=None)
     relevance_input  = relevance_input * input
-    # if we are tracing (i.e., keeping track of hidden layer relevance, put a copy of relevance_input in trace_stack)
-    if trace.trace_enabled:
-        trace.trace_stack.append(relevance_input.clone().detach())
+
+    trace.do_trace(relevance_input) 
     return relevance_input, None, None
 
 class LinearEpsilon(Function):
@@ -90,10 +89,12 @@ def _backward_alpha_beta(alpha, beta, ctx, relevance_output):
 
         return r1 + r2
 
-    pos_rel = f(input_pos, input_neg, weights_pos, weights_neg)
-    neg_rel = f(input_neg, input_pos, weights_pos, weights_neg)
+    pos_rel         = f(input_pos, input_neg, weights_pos, weights_neg)
+    neg_rel         = f(input_neg, input_pos, weights_pos, weights_neg)
+    relevance_input = pos_rel * alpha - neg_rel * beta
 
-    return pos_rel * alpha - neg_rel * beta, None, None
+    trace.do_trace(relevance_input)
+    return relevance_input, None, None
 
 class LinearAlpha1Beta0(Function):
     @staticmethod
@@ -126,6 +127,7 @@ def _backward_pattern(ctx, relevance_output):
     if  ctx.attribution: P = P * weight # PatternAttribution
     relevance_input  = F.linear(relevance_output, P.t(), bias=None)
 
+    trace.do_trace(relevance_input)
     return relevance_input, None, None, None
 
 class LinearPatternAttribution(Function):
